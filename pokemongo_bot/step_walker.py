@@ -3,7 +3,6 @@ from math import sqrt
 from cell_workers.utils import distance
 from human_behaviour import random_lat_long_delta, sleep
 
-
 class StepWalker(object):
 
     def __init__(self, bot, speed, dest_lat, dest_lng):
@@ -39,6 +38,7 @@ class StepWalker(object):
     def step(self):
         if (self.dLat == 0 and self.dLng == 0) or self.dist < self.speed:
             self.api.set_position(self.destLat, self.destLng, 0)
+            self.bot.heartbeat()
             return True
 
         totalDLat = (self.destLat - self.initLat)
