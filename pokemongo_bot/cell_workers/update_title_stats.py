@@ -2,6 +2,7 @@ import ctypes
 from sys import stdout, platform as _platform
 from datetime import datetime, timedelta
 
+from pokemongo_bot import logger
 from pokemongo_bot.cell_workers.base_task import BaseTask
 from pokemongo_bot.worker_result import WorkerResult
 from pokemongo_bot.tree_config_builder import ConfigException
@@ -86,6 +87,9 @@ class UpdateTitleStats(BaseTask):
         if not title:
             return WorkerResult.SUCCESS
         self._update_title(title, _platform)
+
+        logger.log(title, 'blue')
+
         return WorkerResult.SUCCESS
 
     def _should_display(self):
@@ -142,6 +146,10 @@ class UpdateTitleStats(BaseTask):
 
         # Gather stats values.
         metrics = self.bot.metrics
+
+        # uptime in minutes
+        uptime_in_minutes = metrics.uptime_in_minutes()
+
         metrics.capture_stats()
         runtime = metrics.runtime()
         distance_travelled = metrics.distance_travelled()
@@ -153,12 +161,13 @@ class UpdateTitleStats(BaseTask):
         whole_level_xp = next_level_xp - prev_level_xp
         level_completion_percentage = int((current_level_xp * 100) / whole_level_xp)
         experience_per_hour = int(metrics.xp_per_hour())
+        experience_per_minute = int(metrics.xp_per_minute())
         xp_earned = metrics.xp_earned()
-        stops_visited = metrics.visits['latest'] - metrics.visits['start']
+        stops_visited = (metrics.visits['latest'] - metrics.visits['start']) / uptime_in_minutes
         pokemon_encountered = metrics.num_encounters()
-        pokemon_caught = metrics.num_captures()
+        pokemon_caught = metrics.num_captures() / uptime_in_minutes
         pokemon_released = metrics.releases
-        pokemon_evolved = metrics.num_evolutions()
+        pokemon_evolved = metrics.num_evolutions() / uptime_in_minutes
         pokemon_unseen = metrics.num_new_mons()
         pokeballs_thrown = metrics.num_throws()
         stardust_earned = metrics.earned_dust()
@@ -180,12 +189,13 @@ class UpdateTitleStats(BaseTask):
                                                                 whole_level_xp,
                                                                 level_completion_percentage),
             'xp_per_hour': '{:,} XP/h'.format(experience_per_hour),
+            'xp_per_minute': '{:,} XP/m'.format(experience_per_minute),
             'xp_earned': '+{:,} XP'.format(xp_earned),
-            'stops_visited': 'Visited {:,} stops'.format(stops_visited),
+            'stops_visited': 'Visited {:,} /m'.format(stops_visited),
             'pokemon_encountered': 'Encountered {:,} pokemon'.format(pokemon_encountered),
-            'pokemon_caught': 'Caught {:,} pokemon'.format(pokemon_caught),
+            'pokemon_caught': 'Caught {:,} /m'.format(pokemon_caught),
             'pokemon_released': 'Released {:,} pokemon'.format(pokemon_released),
-            'pokemon_evolved': 'Evolved {:,} pokemon'.format(pokemon_evolved),
+            'pokemon_evolved': 'Evolved {:,} /m'.format(pokemon_evolved),
             'pokemon_unseen': 'Encountered {} new pokemon'.format(pokemon_unseen),
             'pokemon_stats': 'Encountered {:,} pokemon, {:,} caught, {:,} released, {:,} evolved, '
                              '{} never seen before'.format(pokemon_encountered, pokemon_caught,
